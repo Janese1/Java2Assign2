@@ -2,6 +2,7 @@ package application.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -25,7 +26,7 @@ public class Controller implements Initializable {
     private Rectangle game_panel;
 
     private static boolean TURN = false;
-
+//判断win的时候看chessboard
     private static final int[][] chessBoard = new int[3][3];
     private static final boolean[][] flag = new boolean[3][3];
 
@@ -37,11 +38,75 @@ public class Controller implements Initializable {
             if (refreshBoard(x, y)) {
                 TURN = !TURN;
             }
+            Boolean win=judge(chessBoard);
         });
     }
 
+    public boolean judge(int[][] chessBoard){
+        int cnt=0; //判断棋盘满不满
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        //judge by row/column
+        for (int i = 0; i < chessBoard.length; i++) {
+            int circleRow=0;
+            int circleColumn=0;
+            int lineRow=0;
+            int lineColumn=0;
+            for (int j = 0; j < chessBoard[0].length; j++) {
+                if (chessBoard[i][j]==PLAY_1){
+                    circleRow++;
+                    cnt++;
+                } else if (chessBoard[i][j]==PLAY_2){
+                    lineRow++;
+                    cnt++;
+                }
+                if (chessBoard[j][i]==PLAY_1){
+                    circleColumn++;
+                } else if (chessBoard[j][i]==PLAY_2){
+                    lineColumn++;
+                }
+            }
+            if (circleRow==3||circleColumn==3) {
+                alert.setTitle("Information Dialog");
+                alert.setHeaderText("Game over!");
+                alert.setContentText("Player1 win!");
+                alert.showAndWait();
+                return true;
+            } else if (lineRow==3||lineColumn==3){
+                alert.setTitle("Information Dialog");
+                alert.setHeaderText("Game over!");
+                alert.setContentText("Player2 win!");
+                alert.showAndWait();
+                return true;
+            }
+        }
+        //judge by dialog
+        if((chessBoard[0][0]==PLAY_1&chessBoard[1][1]==PLAY_1&chessBoard[2][2]==PLAY_1)
+                ||(chessBoard[2][0]==PLAY_1&chessBoard[1][1]==PLAY_1&chessBoard[0][2]==PLAY_1)){
+            alert.setTitle("Information Dialog");
+            alert.setHeaderText("Game over!");
+            alert.setContentText("Player1 win!");
+            alert.showAndWait();
+            return true;
+        }else if((chessBoard[0][0]==PLAY_2&chessBoard[1][1]==PLAY_2&chessBoard[2][2]==PLAY_2)
+                ||(chessBoard[2][0]==PLAY_2&chessBoard[1][1]==PLAY_2&chessBoard[0][2]==PLAY_2)) {
+            alert.setTitle("Information Dialog");
+            alert.setHeaderText("Game over!");
+            alert.setContentText("Player2 win!");
+            alert.showAndWait();
+            return true;
+        } else if (cnt==9){
+            alert.setTitle("Information Dialog");
+            alert.setHeaderText("Game over!");
+            alert.setContentText("Full Warning!");
+            alert.showAndWait();
+            return true;
+        }
+        return true;
+    }
     private boolean refreshBoard (int x, int y) {
         if (chessBoard[x][y] == EMPTY) {
+            //turn是对的话就在chessboard的xy位置上放1，否则就放2，turn的默认值是false,故游戏从player2开始，先画叉
+            //turn是false时player2开始，turn是true是player1开始
             chessBoard[x][y] = TURN ? PLAY_1 : PLAY_2;
             drawChess();
             return true;
@@ -49,6 +114,7 @@ public class Controller implements Initializable {
         return false;
     }
 
+    //刷新，遍历chessboard数组，1的位置画圆，2的位置画叉，已经画过的地方不变
     private void drawChess () {
         for (int i = 0; i < chessBoard.length; i++) {
             for (int j = 0; j < chessBoard[0].length; j++) {
