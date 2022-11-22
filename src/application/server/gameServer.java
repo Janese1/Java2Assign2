@@ -17,18 +17,22 @@ public class gameServer implements TicTacToeConstants {
         System.out.println( "Waiting for clients to connect..." );
         while (true) {
             Socket s1 = server.accept();
-            System.out.println( "Player1 connected successfully!" );
             OutputStream outputStream1=s1.getOutputStream();
             PrintWriter out1=new PrintWriter(outputStream1);
             //定义其为玩家1
             out1.println("Connected:player1");
+            out1.flush();
+            System.out.println( "Player1 connected successfully!" );
+
 
             Socket s2=server.accept();
-            System.out.println( "Player2 connected successfully!" );
             OutputStream outputStream2=s2.getOutputStream();
             PrintWriter out2=new PrintWriter(outputStream2);
             //定义其为玩家2
             out2.println("Connected:player2");
+            out2.flush();
+            System.out.println( "Player2 connected successfully!" );
+
 
             //每两个玩家开启一局新游戏
             serverThread st=new serverThread(s1,s2);
@@ -96,54 +100,73 @@ class serverThread extends Thread implements TicTacToeConstants {
     public void run() {
 
         //告诉玩家一先开始游戏
-        //out1.println("You first");
-        //out1.flush();
+        out1.println("You first");
+        out1.flush();
 
         //开始游戏
         while (!exit) {
             try {
                 //看是否需要等待
-                waitPlayers();
+                waitPlayers();//等待，直到收到player1发送来的坐标
+                System.out.println("玩家一落子："+x+","+y);
+
                 chessBoard[x][y] = PLAY_1;
+                //System.out.println(chessBoard[x][y]);
 
                 if (isWin(PLAY_1)) {//player1 win
-                    out1.println(1);
-                    out1.println("OVER:Player1 win");
-                    out2.println(1);
-                    out2.println("OVER:Player2 win");
+                    send(out1,"RUN");
+                    send(out1,"OVER:Player1 win");
+                    send(out2,"RUN");
+                    send(out2,"OVER:Player1 win");
                     //向客户端2发送坐标
-                    send(out2,"Move:"+x+","+y);
+                    send(out2,x+","+y);
+
+                    System.out.println("Game over! Player1 win");
                     //结束
                     exit=true;
                     break;
 
                 } else if (isFull(chessBoard)) {//chessboard is full
-                    out1.println(1);
-                    out1.println("OVER:Tie");
-                    out1.println(1);
-                    out2.println("Over:Tie");
-                    send(out2,"Move:"+x+","+y);
+                    send(out1,"RUN");
+                    send(out1,"OVER:Tie");
+                    send(out2,"RUN");
+                    send(out2,"OVER:Tie");
+                    send(out2,x+","+y);
+
+                    System.out.println("Game over! It's a tie");
                     exit=true;
                     break;
                 } else { //chessboard is not full,game continue
-                    out2.println(1);
-                    out2.println("Continue:Your turn");
-                    send(out2,"Move:"+x+","+y);
+                    send(out2,"RUN");
+                    send(out2,"Continue:Your turn");
+                    //out2.println("Continue:Your turn");
+                    send(out2,x+","+y);
+                    //System.out.println(x);
+                    System.out.println("Game continue! It's player2's turn");
                 }
-                waitPlayers();
+
+                waitPlayers(); //等待直到收到player2发送来的坐标
+                System.out.println("玩家二落子："+x+","+y);
+                //System.out.println(x+","+y);
+
                 chessBoard[x][y] = PLAY_2;
 
                 if (isWin(PLAY_2)) { //player2 win
-                    out1.println(1);
-                    out1.println("Over:Player2 win");
-                    out1.println(1);
-                    out2.println("Over:Player2 win");
-                    send(out1,"Move:"+x+","+y);
+                    send(out1,"RUN");
+                    send(out1,"OVER:Player2 win");
+                    send(out2,"RUN");
+                    send(out2,"OVER:Player2 win");
+                    send(out1,x+","+y);
+
+                    System.out.println("Game over! Player2 win");
                     exit=true;
                     break;
                 } else { //chessboard is not full
-                    out1.println("Continue:Your turn");
-                    send(out1,"Move:"+x+","+y);
+                    send(out1,"RUN");
+                    send(out1,"Continue:Your turn");
+                   // out1.println("Continue:Your turn");
+                    send(out1,x+","+y);
+                    System.out.println("Game continue! It's player1's turn");
                 }
             } catch(Exception e){
                 release();
@@ -193,7 +216,7 @@ class serverThread extends Thread implements TicTacToeConstants {
         closeAll.close(s1,s2,out1,out2);
     }
 
-//实现两个客户端信息交互的类
+//实现服务器与两个客户端信息交互的类
     class exchangeInfo implements Runnable{
         private Socket player1;
         private Socket player2;
@@ -217,32 +240,31 @@ class serverThread extends Thread implements TicTacToeConstants {
 
         @Override
         public void run() {
-            try {
-                while (!quit){
-                    String line=fromPlayer1.nextLine();
-                    String[] strArray=line.split(":");
-                    sign=strArray[0];
-                    info=strArray[1];
-                    if (sign.equals("Move")){
-                        //读取坐标
-                        needWait=false;
-                        StringTokenizer s = new StringTokenizer(info, ",");
-                        x= Integer.parseInt(s.nextToken());
-                        y = Integer.parseInt(s.nextToken());
-
-                    }
-                }
-            } catch (Exception e) {
-                //有玩家退出
-                System.out.println("Player has quited");
-                players.remove(player1);
-                needWait=false;
-                toPlayer2.println(2);
+            while (!quit) {
                 try {
-                    release();
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
+                    String line = fromPlayer1.nextLine();
+                    if (line.equals("RUN")) {
+                        //读取坐标
+                        info = fromPlayer1.nextLine();
+                        //System.out.println(info);
+                        StringTokenizer s = new StringTokenizer(info, ",");
+                        x = Integer.parseInt(s.nextToken());
+                        y = Integer.parseInt(s.nextToken());
+                        //等待结束  对needwait赋值会抛出异常
+                        needWait = false;
+                    }
+                } catch(Exception e){
+                        //有玩家退出
+                        System.out.println("Player has quit");
+                        players.remove(player1);
+                        needWait = false;
+                        send(toPlayer2, "ERROR");
+                        try {
+                            release();
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
             }
         }
 
