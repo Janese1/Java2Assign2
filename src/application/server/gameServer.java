@@ -1,8 +1,10 @@
 package application.server;
 
 import application.closeAll;
-import application.controller.TicTacToeConstants;
-import java.io.*;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -10,7 +12,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
-public class gameServer implements TicTacToeConstants {
+public class gameServer  {
     public static void main(String[] args) throws IOException {
         //服务器端口8000
         ServerSocket server = new ServerSocket(7000);
@@ -42,7 +44,7 @@ public class gameServer implements TicTacToeConstants {
 }
 
 //每两个socket开启一局新游戏
-class serverThread extends Thread implements TicTacToeConstants {
+class serverThread extends Thread  {
     //存储每个在线玩家的信息
     private ArrayList<Socket> players = new ArrayList<>();
 
@@ -52,6 +54,9 @@ class serverThread extends Thread implements TicTacToeConstants {
     private PrintWriter out2;
     private Scanner in1;
     private Scanner in2;
+    private static int PLAY_1=1;
+    private static int PLAY_2=2;
+    private static int EMPTY=0;
 
     //棋子定位
     private int x;
@@ -77,7 +82,7 @@ class serverThread extends Thread implements TicTacToeConstants {
             in1 = new Scanner(s1.getInputStream());
             in2 = new Scanner(s2.getInputStream());
         } catch (IOException e) {
-            System.out.println("xxxx");
+            //System.out.println("xxxx");
             release();
         }
 
@@ -121,7 +126,7 @@ class serverThread extends Thread implements TicTacToeConstants {
                     //向客户端2发送坐标
                     send(out2,x+","+y);
 
-                    System.out.println("Game over! Player1 win");
+                    System.out.println("------Game over! Player1 win------");
                     //结束
                     exit=true;
                     break;
@@ -133,7 +138,7 @@ class serverThread extends Thread implements TicTacToeConstants {
                     send(out2,"OVER:Tie");
                     send(out2,x+","+y);
 
-                    System.out.println("Game over! It's a tie");
+                    System.out.println("------Game over! It's a tie------");
                     exit=true;
                     break;
                 } else { //chessboard is not full,game continue
@@ -158,7 +163,7 @@ class serverThread extends Thread implements TicTacToeConstants {
                     send(out2,"OVER:Player2 win");
                     send(out1,x+","+y);
 
-                    System.out.println("Game over! Player2 win");
+                    System.out.println("------Game over! Player2 win------");
                     exit=true;
                     break;
                 } else { //chessboard is not full
@@ -172,6 +177,8 @@ class serverThread extends Thread implements TicTacToeConstants {
                 release();
             }
         }
+
+        //System.out.println("有玩家退出");
     }
 
     private boolean isWin(int a) {
@@ -242,7 +249,9 @@ class serverThread extends Thread implements TicTacToeConstants {
         public void run() {
             while (!quit) {
                 try {
+
                     String line = fromPlayer1.nextLine();
+
                     if (line.equals("RUN")) {
                         //读取坐标
                         info = fromPlayer1.nextLine();
@@ -255,7 +264,7 @@ class serverThread extends Thread implements TicTacToeConstants {
                     }
                 } catch(Exception e){
                         //有玩家退出
-                        System.out.println("Player has quit");
+                       // System.out.println("Player has quit, game over");
                         players.remove(player1);
                         needWait = false;
                         send(toPlayer2, "ERROR");
@@ -266,6 +275,10 @@ class serverThread extends Thread implements TicTacToeConstants {
                         }
                     }
             }
+
+           // System.out.println("异常，游戏结束");
+            //closeAll.close(player1,player2,fromPlayer1,toPlayer2);
+
         }
 
         public void release() throws IOException {

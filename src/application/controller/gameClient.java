@@ -82,23 +82,23 @@ public class gameClient implements Initializable {
                 //System.out.println(fromServer.nextLine());
 
                     String line = fromServer.nextLine();
-                    System.out.println(line);
+                   // System.out.println(line);
                     if (line.equals("Connected:player1")) {
                         currentPlayer = PLAY_1;
-                        System.out.println("You are player1, please wait player to connect");
+                        System.out.println("You are player1, please wait player2 to connect");
 
                         //等待用户二连接
                         System.out.println(fromServer.nextLine());
 
                         //fromServer.nextLine();
-                            System.out.println("Game Start");
+                            System.out.println("------Game Start------");
                             System.out.println("Player2 has connected, please settle your piece firstly");
                             //接收数据
                             receiveInfo();//副线程
                             TURN = true;//玩家一可以开始落子了
                     } else if (line.equals("Connected:player2")) {
                         currentPlayer = PLAY_2;
-                        System.out.println("Game start");
+                        System.out.println("------Game start------");
                         System.out.println("You are player2, please wait player1 to settle");
                         //接收数据
                         receiveInfo();
@@ -123,7 +123,6 @@ public class gameClient implements Initializable {
                                 Thread.sleep(100);
                             }
                             needWait=true;
-                            //waitingForPlayer();
                             send();
                         }
                     }
@@ -140,6 +139,7 @@ public class gameClient implements Initializable {
     //只要游戏还在继续，就一直读数据（while循环）
     public void receiveInfo(){
         new Thread(()->{
+            label:
             while (gameContinue){
                 String sign;
                 try {
@@ -160,47 +160,37 @@ public class gameClient implements Initializable {
                     String position=fromServer.nextLine();
                    // System.out.println(position);
 
-                    if (info.equals("OVER:Player1 win")){
+                       switch (info) {
+                           case "OVER:Player1 win":
+                           case "OVER:Tie":
 
-                        if (currentPlayer==PLAY_2) {
-                            readChess(position);
-                        }
-                        //receive=false;//接收数据完毕，可以停止等待
-                        break;
-                    } else if (info.equals("OVER:Player2 win")){
+                               if (currentPlayer == PLAY_2) {
+                                   readChess(position);
+                               }
+                               //receive=false;
+                               break label;
+                           case "OVER:Player2 win":
 
-                        if (currentPlayer==PLAY_1) {
-                            readChess(position);
-                        }
-                        //receive=false;
-                        break;
-                    } else if (info.equals("OVER:Tie")){
-
-                        if (currentPlayer==PLAY_2) {
-                            readChess(position);
-                        }
-                        //receive=false;
-                        break;
-                    } else {
-                        readChess(position);
-                        needWait=false;
-                        //System.out.println("readchess功能正常");
-                        //receive=false;
-                        //TURN=true;//成功同步对方的坐标，己方可以再次落子
-                    }
+                               if (currentPlayer == PLAY_1) {
+                                   readChess(position);
+                               }
+                               //receive=false;
+                               break label;
+                           //receive=false;
+                           default:
+                               readChess(position);
+                               needWait = false;
+                               break;
+                       }
                 } else if (sign.equals("ERROR")){
                     //有人退出
                     if (gameContinue){
-                        System.out.println("The other has quit, you win");
+                        System.out.println("---The other has quit, you win---");
                         TURN=false;
                         gameContinue=false;
                     }
-                    if (receive){
-                        receive=false;
-                    }
-                    if (needWait){
-                        needWait=false;
-                    }
+                       receive=false;
+                       needWait=false;
                     break;
                 }
             } catch (Exception e) {
@@ -209,7 +199,8 @@ public class gameClient implements Initializable {
                     release();
                 }
              }
-         }).start();
+            //release();
+        }).start();
     }
 
     //接收完数据(棋盘上同步了棋子)后，根据数据发出提示语
@@ -222,22 +213,22 @@ public class gameClient implements Initializable {
             gameContinue=false;
             needWait=false;
             if (currentPlayer==PLAY_1){
-                System.out.println("Congratulations! You win the game");
+                System.out.println("---Congratulations! You win the game---");
             } else if (currentPlayer==PLAY_2){
-                System.out.println("Sorry! You lost the game");
+                System.out.println("---Sorry! You lost the game---");
             }
         } else if (info.equals("OVER:Player2 win")){
             gameContinue=false;
             needWait=false;
             if (currentPlayer==PLAY_2){
-                System.out.println("Congratulations! You win the game");
+                System.out.println("---Congratulations! You win the game---");
             } else if (currentPlayer==PLAY_1){
-                System.out.println("Sorry! You lost the game");
+                System.out.println("---Sorry! You lost the game---");
             }
         } else if (info.equals("OVER:Tie")){
             gameContinue=false;
             needWait=false;
-            System.out.println("平局");
+            System.out.println("---Tie, no winner---");
         } else {
             TURN=true;//轮到己方下棋
         }
@@ -260,15 +251,13 @@ public class gameClient implements Initializable {
                         needWait = false;
 
                     }
-                } else {
-                    return;
                 }
             });
         }
 
 
     //接受对方的旗子坐标，并在棋盘上画出来
-    public void readChess(String position) throws InterruptedException {
+    public void readChess(String position) {
         Platform.runLater(()->{
                     StringTokenizer s = new StringTokenizer(position, ",");
                     int i = Integer.parseInt(s.nextToken());
@@ -291,17 +280,6 @@ public class gameClient implements Initializable {
                     }
                 });
     }
-
-   /* //等待玩家(己方)下棋 有问题
-    public void waitingForPlayer() throws InterruptedException
-    {
-        while(needWait)
-        {
-            //阻止主线程
-            Thread.sleep(100);
-        }
-        needWait = true;
-    }*/
 
     //等待接收数据 有问题
     public void waitingForReceive() throws InterruptedException
