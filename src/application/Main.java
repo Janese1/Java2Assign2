@@ -22,19 +22,19 @@ public class Main extends Application {
     try {
       FXMLLoader fxmlLoader = new FXMLLoader();
 
-        fxmlLoader.setLocation(getClass().getClassLoader().getResource("mainUI.fxml"));
-        Pane root = fxmlLoader.load();
-        primaryStage.setTitle("Tic Tac Toe");
-        primaryStage.setScene(new Scene(root));
-        primaryStage.setResizable(false);
-        primaryStage.show();
-        primaryStage.setOnCloseRequest(windowEvent -> System.exit(0));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+      fxmlLoader.setLocation(getClass().getClassLoader().getResource("mainUI.fxml"));
+      Pane root = fxmlLoader.load();
+      primaryStage.setTitle("Tic Tac Toe");
+      primaryStage.setScene(new Scene(root));
+      primaryStage.setResizable(false);
+      primaryStage.show();
+      primaryStage.setOnCloseRequest(windowEvent -> System.exit(0));
+    } catch (Exception e) {
+      e.printStackTrace();
     }
+  }
 
-    public static void main(String[] args) {
+  public static void main(String[] args) {
         launch(args);
     }
 }
